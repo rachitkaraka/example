@@ -1,0 +1,104 @@
+<project name="JunitDemo" basedir="." default="main">
+
+    <property name="src.dir"     value="src"/>
+    <property name="build.dir"   value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="jar.dir"     value="${build.dir}/jar"/>
+    <property name="main-class"  value="test.com.infosys.testsuite.JunitTestSuite"/>
+	<property name="lib.dir"     value="lib"/>
+	<property name="PATH_TOMCAT" location="D:\POC_SOFTWARE\apache-tomcat-8.0.37"/>
+	<property name="PATH_MONGODB" location="C:\Program Files\MongoDB\Server\3.2\bin"/>
+	<property name="storage-location" location="data\db"/>
+	
+	<path id="classpath">
+	        <fileset dir="${lib.dir}" includes="**/*.jar"/>
+	 </path>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="${classes.dir}"/>
+    	<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="classpath"/>
+    </target>
+
+    <target name="jar" depends="compile">
+        <mkdir dir="${jar.dir}"/>
+        <jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="${main-class}"/>
+            </manifest>
+        </jar>
+    </target>
+	
+	<target name="tomcat-setup">
+		<delete dir="${PATH_TOMCAT}/webapps"/>
+		<mkdir dir="${PATH_TOMCAT}/webapps"/>
+		<copy todir="${PATH_TOMCAT}/webapps" overwrite="false"> 
+			 <fileset dir="${lib.dir}">
+			    <include name="**/*.war" />
+			  </fileset>
+		</copy>
+	</target>
+	 
+	<target name="tomcat-start" depends="tomcat-setup"> 
+		<java classname="org.apache.catalina.startup.Bootstrap" fork="true"> 
+	    	<classpath path="${PATH_TOMCAT}/bin/bootstrap.jar:${PATH_TOMCAT}/bin/tomcat-juli.jar" />              
+			<jvmarg value="-Dcatalina.home=${PATH_TOMCAT}"/>
+		</java>
+	 </target> 
+	
+	<target name="tomcat-stop">
+			<java classname="org.apache.catalina.startup.Bootstrap" fork="true"> 
+		    	<classpath path="${PATH_TOMCAT}/bin/bootstrap.jar:${PATH_TOMCAT}/bin/tomcat-juli.jar" />              
+				<jvmarg value="-Dcatalina.home=${PATH_TOMCAT}"/>
+				<arg line="stop"/>
+			</java> 
+	</target>
+	
+	<target name="DB-start">
+		<delete dir="${storage-location}"/>
+		<mkdir dir="${storage-location}"/>
+		<exec executable="${PATH_MONGODB}/mongod.exe">
+			<arg value="--dbpath=${storage-location}"/>
+		</exec>
+	</target>
+	
+    <target name="run" depends="jar">
+        <java fork="true" classname="${main-class}">
+        	<env key="PACKAGE_NAME" value="com.infosys"/>
+            <jvmarg value="-javaagent:${lib.dir}/aspectjweaver.jar" />
+            <classpath>
+                <path refid="classpath"/>
+                <path location="${jar.dir}/${ant.project.name}.jar"/>
+            </classpath>
+        </java>
+    </target>
+
+    <target name="clean-build" depends="clean,jar"/>
+
+    <target name="main">
+    	<parallel threadcount="6">
+    		<sequential>
+    			<antcall target="tomcat-start" >
+    			</antcall>
+    		</sequential>
+    		<sequential>
+    			<antcall target="DB-start" >
+    		    </antcall>
+    		</sequential>
+    		<sequential>
+    			<antcall target="clean" >
+    		    </antcall>
+    			<antcall target="run" >
+    			</antcall>
+    			<antcall target="tomcat-stop" >
+    			</antcall>
+    		</sequential>
+    		
+    	</parallel>
+    	
+    </target>
+
+</project>
