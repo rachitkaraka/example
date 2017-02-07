@@ -65,7 +65,17 @@ public class Add {
         do{
             sum = addition(x,y);
             y++;
-            System.out.println("Sum is:"+sum);
+            System.out.println("The Sum is:"+sum);
+        }while(x>y);
+        return sum;
+    }
+	
+	public int doDhileCheck(int x,int y){
+        int sum = 0;
+        do{
+            sum = addition(x,y);
+            y++;
+            System.out.println("The Sum is:"+sum);
         }while(x>y);
         return sum;
     }
